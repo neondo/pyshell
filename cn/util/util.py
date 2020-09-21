@@ -1,6 +1,7 @@
 import datetime
 import logging
 import math
+import re
 
 import pymysql
 import xlrd
@@ -17,6 +18,20 @@ logging.basicConfig(level=logging.DEBUG,
 lock = Lock()
 
 
+class Log:
+    @staticmethod
+    def info(msg, *param):
+        logging.info(msg, param)
+
+    @staticmethod
+    def debug(msg, *param):
+        logging.debug(msg, param)
+
+    @staticmethod
+    def error(msg, *param):
+        logging.error(msg, param)
+
+
 class DbUtil:
     def __init__(self, name):
         if name == "m":
@@ -30,8 +45,12 @@ class DbUtil:
         self.cur = self.conn.cursor(pymysql.cursors.DictCursor)
 
     def select(self, sql, arg=None):
-        self.cur.execute(sql, arg)
-        return self.cur.fetchall()
+        try:
+            self.cur.execute(sql, arg)
+            return self.cur.fetchall()
+        except Exception as e:
+            print("error sql", sql)
+            raise e
 
     def select_one(self, sql, arg=None):
         self.cur.execute(sql, arg)
@@ -99,7 +118,7 @@ class ConsistSql:
             _id.append(str(e_id))
             for (k, v) in e.items():
                 val = values[k] if k in values else ""
-                v = f"'{v}'" if not_null(v) else k
+                v = f"'{v}'" if StringUtil.not_null(v) else k
                 val += f" WHEN {str(e_id)} THEN {v}"
                 values[k] = val
         return values
@@ -156,16 +175,58 @@ class FileUtil:
                 f.write(a)
             elif type(a) == list:
                 for i in a:
-                    f.write(a + "\n")
+                    f.write(i + "\n")
 
 
-def int_v(val):
-    return int(val) if type(val) is float and val % 1 == 0 else val
+class StringUtil:
+
+    @staticmethod
+    def float2str(val):
+        return str(val)[0:-2] if StringUtil.not_null(val) and re.compile(r"^\d+\.0$").match(
+            str(val)) else val
+
+    @staticmethod
+    def split(val, reg=None):
+        if val is None or type(val) is not str: return val
+        if reg is None: reg = r"\s+"
+        return re.split(reg, val.strip())
+
+    @staticmethod
+    def not_null(val):
+        return val is not None and str(val) != ""
+
+    @staticmethod
+    def trim(val):
+        return val.strip() if type(val) == str else val
+
+    @staticmethod
+    def replace_unicode(val):
+        return re.sub(r"^b'|\\u\w{4}|\\x\w{2}|'$", "", str(val.encode("utf8", "ignore"))) if StringUtil.not_null(
+            val) and type(
+            val) == str else val
+
+    @staticmethod
+    def trimall(trim_val):
+        if type(trim_val) == dict:
+            for k, v in trim_val.items():
+                trim_val[k] = StringUtil.trimall(v)
+            return trim_val
+        elif type(trim_val) == list:
+            for index, ele_list in enumerate(trim_val):
+                trim_val[index] = StringUtil.trimall(ele_list)
+            return trim_val
+        elif StringUtil.not_null(trim_val) and type(trim_val) == str:
+            if trim_val.find("13488987597") > 0:
+                print(trim_val)
+            sub = re.sub(r"\r+|\n+|\t+|\s+", " ", trim_val)
+            if trim_val.find("13488987597") > 0: print(sub)
+            return sub.strip()
+        else:
+            return trim_val
 
 
-def not_null(val):
-    return val is not None and str(val) != ""
-
-
-def trim(val):
-    return val.strip() if type(val) == str else val
+if __name__ == "__main__":
+    p = "   p\njjj\t" \
+        "lll   \t "
+    split = StringUtil.split(p)
+    print(split)

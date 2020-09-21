@@ -379,7 +379,6 @@ E车市场
     for e in result:
         name_ = e["name"]
         for j in split:
-
             rate = get_equal_rate(re_compile.sub("", name_), re_compile.sub("", j))
             if 0.7 < rate < 1:
                 print(j, name_)
