@@ -138,26 +138,76 @@ def update_user_market():
 
 
 def user_market_id():
-    select = db_t.select("SELECT car_market_id,link_mobile mobile FROM t_market_shop where extend LIKE '%{%'")
+    select = db_t.select("SELECT car_market_id,link_mobile mobile FROM t_market_shop where extend like '%{%'")
     data = []
     user_mobile = {}
     for e in select:
-        if re.match(r"\d{11}", e.get("id")):
+        if re.match(r"\d{11}", str(e.get("mobile")).strip()):
             user_mobile.update({str(e.get("mobile")): e.get("car_market_id")})
-            db_select = db.select(
-                "SELECT user_id,mobile FROM t_cardealer where mobile IN(%s)" % (",".join(user_mobile.keys())))
-            for e in db_select:
-                market_id = user_mobile.get(e.get("mobile"))
-                if market_id is None: continue
-                data.append({"id": e.get("user_id"), "car_market_id": market_id})
+    db_select = db.select(
+        "SELECT user_id,mobile FROM t_cardealer where mobile IN(%s)" % (",".join(user_mobile.keys())))
+    for e in db_select:
+        market_id = user_mobile.get(e.get("mobile"))
+        if market_id is None:
+            continue
+        data.append({"id": e.get("user_id"), "car_market_id": market_id})
+    FileUtil.write(r"D:\user_id_market_id_relation.text", data, "w")
 
-    single = ConsistSql.batch_update_single("t_user", data)
-    FileUtil.write(r"D:\user_update_car_market_id_2.sql", single)
+
+def user_market_id_save():
+    select = db_t.select("SELECT extend user_id ,car_market_id FROM t_market_shop where extend is not null")
+    data = []
+    for e in select:
+        if re.match(r"\d+", str(e.get("user_id"))):
+            data.append(e)
+    FileUtil.write(r"D:\user_id_market_id_relation.text", data, "a")
+
+
+def user_market_id_user_detail():
+    extend_shop_id = {}
+    data = []
+    #
+    select = db_t.select("SELECT id, extend user_id FROM  t_market_shop A  "
+                         "where A.extend is not null")
+    for e in select:
+        if re.match(r"\d+", str(e.get("user_id"))):
+            extend_shop_id.update({str(e.get("user_id")): e.get("id")})
+    db_select = db.select(
+        "SELECT id,user_id FROM t_user_detail where user_id IN(%s)" % (",".join(extend_shop_id.keys())))
+    for e in db_select:
+        shop_id = extend_shop_id.get(str(e.get("user_id")))
+        if shop_id is None: continue
+        data.append({"id": e.get("id"), "market_shop_id": shop_id})
+    FileUtil.write(r"D:\user_detail_id_market_shop_id_relation.text", data, "w")
+
+
+def user_market_id_user_detail_no_id():
+    extend_shop_id = {}
+    data = []
+    #
+    select = db_t.select("SELECT id, link_mobile mobile  FROM  t_market_shop A  "
+                         "where A.extend like '%{%'")
+    for e in select:
+        if re.match(r"\d{11}", str(e.get("mobile"))):
+            extend_shop_id.update({str(e.get("mobile")): e.get("id")})
+    db_select = db.select(
+        "SELECT user_id,mobile FROM t_cardealer where mobile IN(%s)" % (",".join(extend_shop_id.keys())))
+    user_market_id_mobile_arr = {}
+    for e in db_select:
+        if e.get("user_id") is None: continue
+        user_market_id_mobile_arr.update({str(e.get("user_id")): e.get("mobile")})
+    db_select_detail = db.select(
+        "SELECT id,user_id FROM t_user_detail where user_id IN(%s)" % (",".join(user_market_id_mobile_arr.keys())))
+    for e in db_select_detail:
+        shop_id = extend_shop_id.get(user_market_id_mobile_arr.get(str(e.get("user_id"))))
+        if shop_id is None: continue
+        data.append({"id": e.get("id"), "market_shop_id": shop_id})
+    FileUtil.write(r"D:\user_detail_id_market_shop_id_relation.text", data, "a")
 
 
 if __name__ == "__main__":
     user_market_id()
-
+    user_market_id_save()
     # market()
     # inset_market()
     # update_user_detail_market_shop()

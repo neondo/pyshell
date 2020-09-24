@@ -56,11 +56,37 @@ class DbUtil:
         self.cur.execute(sql, arg)
         return self.cur.fetchone()
 
+    def update(self, sql, arg=None):
+        self.cur.execute(sql, arg)
+        self.conn.commit()
+
     def close(self):
         if self.cur is not None:
             self.cur.close()
         if self.conn is not None:
             self.conn.close()
+
+
+class PoolUtil:
+    @staticmethod
+    def run(d, fuc, pool_size):
+        if pool_size is None:
+            pool_size = len(d)
+        pool = Pool(pool_size)
+        result = pool.map_async(d, fuc)
+        pool.close()
+        pool.join()
+        return result.get()
+
+
+class PageUtil:
+    @staticmethod
+    def split(d, size):
+        num = math.ceil(float(len(d)) / size)
+        data_arr = []
+        for i in range(num):
+            data_arr.append(d[i * size:(i + 1) * size])
+        return data_arr
 
 
 class ConsistSql:
@@ -105,7 +131,7 @@ class ConsistSql:
         result_val = ConsistSql.method_name(datalist, _id)
         for (k, v) in result_val.items():
             sql += f" `{k}`=CASE id {v} END,"
-        sql = sql[0:-1]
+        sql = sql[0:-1].replace(f'\'None\'', 'null')
         sql += f"  WHERE id IN({(','.join(_id))});"
         print("consist update sql end:%s" % sql)
         return sql
@@ -169,13 +195,20 @@ class FileUtil:
         return arr
 
     @staticmethod
-    def write(path_file, a):
-        with open(path_file, "w", encoding='utf-8') as f:
+    def write(path_file, a, action=None):
+        if action is None:
+            action = "w"
+
+        with open(path_file, action, encoding='utf-8') as f:
             if type(a) == str:
                 f.write(a)
             elif type(a) == list:
+
                 for i in a:
-                    f.write(i + "\n")
+                    if type(i) is str:
+                        f.write(i + "\n")
+                    elif type(i) is dict:
+                        f.write(str(list(i.values())).replace("[", "").replace("]", "") + "\n")
 
 
 class StringUtil:
