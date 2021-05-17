@@ -35,10 +35,10 @@ class Log:
 class DbUtil:
     def __init__(self, name):
         if name == "m":
-            self.conn = pymysql.connect(host="172.17.202.101", port=3308, user="read_only", password="kjbcZtQ1BVv76kpC",
+            self.conn = pymysql.connect(host="xx", port=3308, user="read_only", password="xx",
                                         database="db_www", charset="utf8")
         elif name == "t":
-            self.conn = pymysql.connect(host="172.17.202.121", port=58885, user="develop", password="chaboshitest",
+            self.conn = pymysql.connect(host="xx", port=58885, user="develop", password="xx",
                                         database="db_www", charset="utf8")
         else:
             raise Exception('找不到对应数据库!')

@@ -385,6 +385,7 @@ E车市场
 
 
 if __name__ == "__main__":
-    # market()
-    market_ins()
+    print("")
+# market()
+# market_ins()
 # update_user_detail_market_shop()
